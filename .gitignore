@@ -1,0 +1,5 @@
+.DS_Store
+nimcache/
+out/
+/asteroid_arena
+/players/shooter/shooter
