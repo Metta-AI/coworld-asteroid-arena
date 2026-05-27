@@ -248,11 +248,13 @@ proc queryEscape(value: string): string =
       result.add(Hex[(byte shr 4) and 0x0f])
       result.add(Hex[byte and 0x0f])
 
-proc connectUrl(address: string, port: int, name, token: string): string =
+proc connectUrl(address: string, port: int, name, token: string, slot: int): string =
   result = "ws://" & address & ":" & $port & SpritePlayerPath
   result.add("?name=" & name.queryEscape())
   if token.len > 0:
     result.add("&token=" & token.queryEscape())
+  if slot >= 0:
+    result.add("&slot=" & $slot)
 
 proc runBot(
   address = "localhost",
@@ -260,11 +262,12 @@ proc runBot(
   url = "",
   name = "shooter",
   token = "",
+  slot = -1,
   maxSteps = 0
 ) =
   let endpoint =
     if url.len > 0: url
-    else: connectUrl(address, port, name, token)
+    else: connectUrl(address, port, name, token, slot)
   var connected = false
   while true:
     try:
@@ -309,6 +312,7 @@ when isMainModule:
     url = getEnv("COGAMES_ENGINE_WS_URL")
     name = "shooter"
     token = ""
+    slot = -1
     maxSteps = 0
 
   for kind, key, value in getopt():
@@ -320,8 +324,9 @@ when isMainModule:
       of "url": url = value
       of "name": name = value
       of "token": token = value
+      of "slot": slot = parseInt(value)
       of "max-steps": maxSteps = parseInt(value)
       else: discard
     else: discard
 
-  runBot(address, port, url, name, token, maxSteps)
+  runBot(address, port, url, name, token, slot, maxSteps)
