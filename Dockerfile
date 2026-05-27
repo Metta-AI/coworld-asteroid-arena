@@ -51,4 +51,4 @@ WORKDIR /workspace/cogame-asteroid-arena
 COPY --from=build /bin/asteroid_arena /bin/asteroid_arena
 COPY coworld_manifest.json .
 
-CMD ["/bin/asteroid_arena", "--address:0.0.0.0", "--port:8080"]
+CMD ["/bin/asteroid_arena"]

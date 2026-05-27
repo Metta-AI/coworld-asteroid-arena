@@ -1,5 +1,6 @@
 import
-  std/[json, os, parseopt, strutils],
+  std/[json, os],
+  jsony,
   bitworld/runtime,
   bitworld/protocol,
   asteroid_arena/server,
@@ -11,19 +12,10 @@ type
     port: int
     seed: int
     durationTicks: int
-    resultsPath: string
     tokens: seq[string]
     coopSpawnPercent: int
     coopScoreMultiplier: int
     planetCount: int
-
-proc readConfigString(node: JsonNode, name: string, value: var string) =
-  if not node.hasKey(name):
-    return
-  let item = node[name]
-  if item.kind != JString:
-    raise newException(ValueError, "Config field " & name & " must be a string.")
-  value = item.getStr()
 
 proc readConfigInt(node: JsonNode, name: string, value: var int) =
   if not node.hasKey(name):
@@ -36,11 +28,13 @@ proc readConfigInt(node: JsonNode, name: string, value: var int) =
 proc update(config: var RunConfig, jsonText: string) =
   if jsonText.len == 0:
     return
-  let node = parseJson(jsonText)
+  var node: JsonNode
+  try:
+    node = fromJson(jsonText)
+  except jsony.JsonError as e:
+    raise newException(ValueError, "Could not parse config JSON: " & e.msg)
   if node.kind != JObject:
     raise newException(ValueError, "Config must be a JSON object.")
-  node.readConfigString("address", config.address)
-  node.readConfigInt("port", config.port)
   node.readConfigInt("seed", config.seed)
   if node.hasKey("duration"):
     var durationSeconds = 0
@@ -54,61 +48,45 @@ proc update(config: var RunConfig, jsonText: string) =
   node.readConfigInt("coopSpawnPercent", config.coopSpawnPercent)
   node.readConfigInt("coopScoreMultiplier", config.coopScoreMultiplier)
   node.readConfigInt("planetCount", config.planetCount)
-  node.readConfigString("resultsPath", config.resultsPath)
   if node.hasKey("tokens") and node["tokens"].kind == JArray:
     for item in node["tokens"]:
       if item.kind == JString:
         config.tokens.add(item.getStr())
 
 when isMainModule:
+  let runtimeConfig = readRuntimeConfig(DefaultHost, DefaultPort)
   var
     config = RunConfig(
-      address: cogameHost(DefaultHost),
-      port: cogamePort(DefaultPort),
+      address: runtimeConfig.host,
+      port: runtimeConfig.port,
       seed: 0xA57E2,
       durationTicks: 0,
       coopSpawnPercent: DefaultCoopSpawnPercent,
       coopScoreMultiplier: DefaultCoopScoreMultiplier,
       planetCount: DefaultPlanetCount
     )
-    configJson = ""
-    configPath = pathFromCogameEnv(CogameConfigUriEnv)
-  config.resultsPath = outputPathFromCogameEnv(CogameResultsUriEnv, "scores.json")
+  config.update(runtimeConfig.config)
   let
-    saveReplayPath = outputPathFromCogameEnv(
-      CogameSaveReplayUriEnv,
-      "replay.bitreplay"
-    )
-    loadReplayPath = pathFromCogameEnv(CogameLoadReplayUriEnv)
-  for kind, key, val in getopt():
-    case kind
-    of cmdLongOption:
-      case key
-      of "address": config.address = val
-      of "port": config.port = parseInt(val)
-      of "config": configJson = val
-      of "config-file": configPath = val
-      of "duration":
-        let durationSeconds = parseInt(val)
-        if durationSeconds < 0:
-          raise newException(
-            ValueError,
-            "Config field duration must be at least 0."
-          )
-        config.durationTicks = durationSeconds * TargetFps
-      else: discard
-    else: discard
-  if configPath.len > 0:
-    config.update(readFile(configPath))
-  if configJson.len > 0:
-    config.update(configJson)
+    saveReplayPath =
+      if runtimeConfig.replayUri.len > 0:
+        getTempDir() / ("asteroid-arena-replay-" & $getCurrentProcessId() &
+          ".bitreplay")
+      else:
+        ""
+    loadReplayPath =
+      if runtimeConfig.replayMode:
+        let path = getTempDir() / ("asteroid-arena-load-replay-" &
+          $getCurrentProcessId() & ".bitreplay")
+        writeFile(path, runtimeConfig.replay)
+        path
+      else:
+        ""
   runServerLoop(config.address, config.port, seed = config.seed,
-    durationTicks = config.durationTicks, resultsPath = config.resultsPath,
+    durationTicks = config.durationTicks,
     tokens = config.tokens,
     saveReplayPath = saveReplayPath,
     loadReplayPath = loadReplayPath,
-    resultsUri = getEnv(CogameResultsUriEnv),
-    saveReplayUri = getEnv(CogameSaveReplayUriEnv),
+    runtimeConfig = runtimeConfig,
     coopSpawnPercent = config.coopSpawnPercent,
     coopScoreMultiplier = config.coopScoreMultiplier,
     planetCount = config.planetCount)

@@ -240,53 +240,35 @@ proc runFrameLimiter(previousTick: var MonoTime) =
     sleep(int((frameDuration - elapsed).inMilliseconds))
   previousTick = getMonoTime()
 
-proc writeResults(sim: SimServer, path: string) =
-  if path.len == 0:
-    return
+proc resultsJson(sim: SimServer): string =
+  ## Builds the current Asteroid Arena results JSON.
   var names = newJArray()
   var scores = newJArray()
   for player in sim.players:
     names.add(%player.name)
     scores.add(%player.score)
   let results = %*{"names": names, "scores": scores}
-  let dir = path.parentDir()
-  if dir.len > 0:
-    createDir(dir)
-  writeFile(path, $results & "\n")
+  $results & "\n"
 
 proc writeCoworldArtifacts(
-  resultsPath,
-  saveReplayPath,
-  resultsUri,
-  saveReplayUri: string
+  sim: SimServer,
+  saveReplayPath: string,
+  runtimeConfig: RuntimeConfig
 ) =
-  ## Uploads or copies final Coworld artifacts to their target URIs.
-  if resultsUri.len > 0:
-    writeCogameFileToUri(
-      resultsUri,
-      resultsPath,
-      "application/json",
-      CogameResultsUriEnv
-    )
-  if saveReplayUri.len > 0:
-    writeCogameFileToUri(
-      saveReplayUri,
-      saveReplayPath,
-      "application/octet-stream",
-      CogameSaveReplayUriEnv
-    )
+  ## Writes final Coworld artifacts to their runtime targets.
+  runtimeConfig.writeResults(sim.resultsJson())
+  if saveReplayPath.len > 0 and fileExists(saveReplayPath):
+    runtimeConfig.writeReplay(readFile(saveReplayPath))
 
 proc runServerLoop*(
   host = DefaultHost,
   port = DefaultPort,
   seed = 0xA57E2,
   durationTicks = 0,
-  resultsPath = "",
   tokens: seq[string] = @[],
   saveReplayPath = "",
   loadReplayPath = "",
-  resultsUri = "",
-  saveReplayUri = "",
+  runtimeConfig = RuntimeConfig(),
   coopSpawnPercent = DefaultCoopSpawnPercent,
   coopScoreMultiplier = DefaultCoopScoreMultiplier,
   planetCount = DefaultPlanetCount
@@ -335,13 +317,7 @@ proc runServerLoop*(
     if durationTicks > 0 and tickCount >= durationTicks:
       if replayWriter.enabled:
         closeReplayWriter(replayWriter)
-      sim.writeResults(resultsPath)
-      writeCoworldArtifacts(
-        resultsPath,
-        saveReplayPath,
-        resultsUri,
-        saveReplayUri
-      )
+      sim.writeCoworldArtifacts(saveReplayPath, runtimeConfig)
       quit(0)
 
     if loadReplayPath.len > 0:
@@ -366,13 +342,7 @@ proc runServerLoop*(
         sleep(500)
         if replayWriter.enabled:
           closeReplayWriter(replayWriter)
-        sim.writeResults(resultsPath)
-        writeCoworldArtifacts(
-          resultsPath,
-          saveReplayPath,
-          resultsUri,
-          saveReplayUri
-        )
+        sim.writeCoworldArtifacts(saveReplayPath, runtimeConfig)
         quit(0)
 
       stepReplay(replayPlayer, sim)
