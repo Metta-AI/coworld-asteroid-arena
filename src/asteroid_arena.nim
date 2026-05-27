@@ -1,6 +1,6 @@
 import
-  std/[json, parseopt, strutils],
-  bitworld/cogame_runtime,
+  std/[json, os, parseopt, strutils],
+  bitworld/runtime,
   bitworld/protocol,
   asteroid_arena/server,
   asteroid_arena/sim
@@ -73,9 +73,12 @@ when isMainModule:
     )
     configJson = ""
     configPath = pathFromCogameEnv(CogameConfigUriEnv)
-  config.resultsPath = pathFromCogameEnv(CogameResultsUriEnv)
+  config.resultsPath = outputPathFromCogameEnv(CogameResultsUriEnv, "scores.json")
   let
-    saveReplayPath = pathFromCogameEnv(CogameSaveReplayUriEnv)
+    saveReplayPath = outputPathFromCogameEnv(
+      CogameSaveReplayUriEnv,
+      "replay.bitreplay"
+    )
     loadReplayPath = pathFromCogameEnv(CogameLoadReplayUriEnv)
   for kind, key, val in getopt():
     case kind
@@ -104,6 +107,8 @@ when isMainModule:
     tokens = config.tokens,
     saveReplayPath = saveReplayPath,
     loadReplayPath = loadReplayPath,
+    resultsUri = getEnv(CogameResultsUriEnv),
+    saveReplayUri = getEnv(CogameSaveReplayUriEnv),
     coopSpawnPercent = config.coopSpawnPercent,
     coopScoreMultiplier = config.coopScoreMultiplier,
     planetCount = config.planetCount)

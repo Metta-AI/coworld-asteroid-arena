@@ -1,7 +1,7 @@
 import
   std/[json, locks, monotimes, os, strutils, tables, times],
   mummy,
-  bitworld/client, bitworld/protocol, sim, global, replays
+  bitworld/client, bitworld/protocol, bitworld/runtime, sim, global, replays
 
 const
   UnassignedPlayerIndex = 0x7fffffff
@@ -254,6 +254,30 @@ proc writeResults(sim: SimServer, path: string) =
     createDir(dir)
   writeFile(path, $results & "\n")
 
+proc writeCoworldArtifacts(
+  resultsPath,
+  saveReplayPath,
+  resultsUri,
+  saveReplayUri: string
+) =
+  ## Uploads or copies final Coworld artifacts to their target URIs.
+  if resultsUri.len > 0:
+    writeCogameFileToUri(
+      resultsUri,
+      resultsPath,
+      "application/json",
+      CogameResultsUriEnv,
+      cogameHttpMethodForUri(resultsUri, CogameResultsMethodEnv)
+    )
+  if saveReplayUri.len > 0:
+    writeCogameFileToUri(
+      saveReplayUri,
+      saveReplayPath,
+      "application/octet-stream",
+      CogameSaveReplayUriEnv,
+      cogameHttpMethodForUri(saveReplayUri, CogameSaveReplayMethodEnv)
+    )
+
 proc runServerLoop*(
   host = DefaultHost,
   port = DefaultPort,
@@ -263,6 +287,8 @@ proc runServerLoop*(
   tokens: seq[string] = @[],
   saveReplayPath = "",
   loadReplayPath = "",
+  resultsUri = "",
+  saveReplayUri = "",
   coopSpawnPercent = DefaultCoopSpawnPercent,
   coopScoreMultiplier = DefaultCoopScoreMultiplier,
   planetCount = DefaultPlanetCount
@@ -312,6 +338,12 @@ proc runServerLoop*(
       if replayWriter.enabled:
         closeReplayWriter(replayWriter)
       sim.writeResults(resultsPath)
+      writeCoworldArtifacts(
+        resultsPath,
+        saveReplayPath,
+        resultsUri,
+        saveReplayUri
+      )
       quit(0)
 
     if loadReplayPath.len > 0:
@@ -337,6 +369,12 @@ proc runServerLoop*(
         if replayWriter.enabled:
           closeReplayWriter(replayWriter)
         sim.writeResults(resultsPath)
+        writeCoworldArtifacts(
+          resultsPath,
+          saveReplayPath,
+          resultsUri,
+          saveReplayUri
+        )
         quit(0)
 
       stepReplay(replayPlayer, sim)
