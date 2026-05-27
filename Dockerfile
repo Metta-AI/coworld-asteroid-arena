@@ -27,13 +27,9 @@ ENV PATH="/root/.nimby/nim/bin:$PATH"
 
 WORKDIR /workspace/cogame-asteroid-arena
 COPY nimby.lock .
-RUN nimby sync nimby.lock && \
-  nimby install https://github.com/Metta-AI/bitworld.git
+RUN nimby --global sync nimby.lock
 
 COPY . .
-RUN mkdir -p /workspace/bitworld-assets && \
-  cp -R bitworld/client /workspace/bitworld-assets/client
-
 ARG NimFlags="-d:release -d:useMalloc --opt:speed --stackTrace:on"
 ARG NimCommand="c"
 ARG NimMain="src/asteroid_arena.nim"
@@ -53,7 +49,6 @@ RUN apt-get update && \
 
 WORKDIR /workspace/cogame-asteroid-arena
 COPY --from=build /bin/asteroid_arena /bin/asteroid_arena
-COPY --from=build /workspace/bitworld-assets/client ./client
 COPY coworld_manifest.json .
 
 CMD ["/bin/asteroid_arena", "--address:0.0.0.0", "--port:8080"]
