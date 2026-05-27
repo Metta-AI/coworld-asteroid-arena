@@ -266,16 +266,14 @@ proc writeCoworldArtifacts(
       resultsUri,
       resultsPath,
       "application/json",
-      CogameResultsUriEnv,
-      cogameHttpMethodForUri(resultsUri, CogameResultsMethodEnv)
+      CogameResultsUriEnv
     )
   if saveReplayUri.len > 0:
     writeCogameFileToUri(
       saveReplayUri,
       saveReplayPath,
       "application/octet-stream",
-      CogameSaveReplayUriEnv,
-      cogameHttpMethodForUri(saveReplayUri, CogameSaveReplayMethodEnv)
+      CogameSaveReplayUriEnv
     )
 
 proc runServerLoop*(
