@@ -44,32 +44,6 @@ proc initAppState() =
 proc isWebSocketUpgrade(request: Request): bool =
   request.headers["Sec-WebSocket-Key"].len > 0
 
-proc clientStaticBody(route: string): string =
-  ## Returns the embedded BitWorld client body for one route.
-  case clientRoute(route, GlobalClientRoute)
-  of PlayerClientRoute, GlobalClientRoute, AdminClientRoute,
-      RewardClientRoute:
-    EmbeddedGlobalClientHtml
-  of SnappyClientRoute:
-    EmbeddedSnappyClientJs
-  else:
-    ""
-
-proc serveClientHtml(request: Request, route: string): bool =
-  if request.httpMethod != "GET":
-    return false
-  let body = clientStaticBody(route)
-  if body.len == 0:
-    return false
-  var headers: HttpHeaders
-  headers["Content-Type"] = clientStaticContentType(route, GlobalClientRoute)
-  headers["Cache-Control"] = "no-cache"
-  request.respond(200, headers, body)
-  true
-
-proc serveStaticClientHtml(request: Request): bool =
-  request.serveClientHtml(request.path)
-
 proc cleanPlayerName(name: string): string =
   result = name.strip()
   for ch in result.mitems:
@@ -134,7 +108,7 @@ proc httpHandler(request: Request) =
       request.path == "/admin") and
       request.httpMethod == "GET" and
       not request.isWebSocketUpgrade():
-    discard request.serveClientHtml(GlobalClientRoute)
+    discard request.serveClientFile(GlobalClientRoute, GlobalClientRoute)
   elif (request.path == GlobalWebSocketPath or request.path == "/admin") and
       request.httpMethod == "GET" and
       request.isWebSocketUpgrade():
@@ -148,7 +122,7 @@ proc httpHandler(request: Request) =
     {.gcsafe.}:
       withLock appState.lock:
         appState.rewardViewers[websocket] = true
-  elif request.serveStaticClientHtml():
+  elif request.serveClientRoute(GlobalClientRoute):
     discard
   else:
     var headers: HttpHeaders
