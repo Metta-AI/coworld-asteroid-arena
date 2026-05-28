@@ -25,7 +25,7 @@ https://github.com/treeform/nimby/releases/download/0.1.26/nimby-Linux-ARM64; \
 
 ENV PATH="/root/.nimby/nim/bin:$PATH"
 
-WORKDIR /workspace/cogame-asteroid-arena
+WORKDIR /workspace/coworld-asteroid-arena
 COPY nimby.lock .
 RUN nimby --global sync nimby.lock
 
@@ -36,7 +36,7 @@ ARG NimMain="src/asteroid_arena.nim"
 RUN nim $NimCommand \
   $NimFlags \
   --path:src \
-  --nimcache:/tmp/cogame-nimcache \
+  --nimcache:/tmp/coworld-nimcache \
   --out:/bin/asteroid_arena \
   $NimMain
 
@@ -47,7 +47,7 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates curl && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace/cogame-asteroid-arena
+WORKDIR /workspace/coworld-asteroid-arena
 COPY --from=build /bin/asteroid_arena /bin/asteroid_arena
 COPY coworld_manifest.json .
 
