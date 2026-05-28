@@ -2,7 +2,6 @@ import
   std/[json, os],
   jsony,
   bitworld/runtime,
-  bitworld/protocol,
   asteroid_arena/server,
   asteroid_arena/sim
 
@@ -54,7 +53,7 @@ proc update(config: var RunConfig, jsonText: string) =
         config.tokens.add(item.getStr())
 
 when isMainModule:
-  let runtimeConfig = readRuntimeConfig(DefaultHost, DefaultPort)
+  let runtimeConfig = readRuntimeConfig()
   var
     config = RunConfig(
       address: runtimeConfig.host,
