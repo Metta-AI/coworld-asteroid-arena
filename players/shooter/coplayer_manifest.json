@@ -1,7 +1,7 @@
 {
   "author": "treeform@softmax.com",
   "name": "shooter",
-  "image_uri": "ghcr.io/treeform/bitworld-asteroid-arena-shooter:latest",
+  "image_uri": "public.ecr.aws/s3j4p9s7/treeform/players/shooter:latest",
   "games": [
     "asteroid_arena"
   ],
