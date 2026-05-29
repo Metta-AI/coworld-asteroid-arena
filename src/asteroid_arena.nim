@@ -52,6 +52,28 @@ proc update(config: var RunConfig, jsonText: string) =
       if item.kind == JString:
         config.tokens.add(item.getStr())
 
+proc limitText(value: int): string =
+  ## Returns a readable text value for a numeric limit.
+  if value > 0:
+    $value
+  else:
+    "infinite"
+
+proc echoStartupConfig(config: RunConfig, runtimeConfig: RuntimeConfig) =
+  ## Prints the effective startup config without token secrets.
+  echo "Asteroid Arena config: host=", config.address,
+    " port=", config.port,
+    " seed=", config.seed,
+    " tokens=", config.tokens.len,
+    " durationTicks=", config.durationTicks.limitText(),
+    " coopSpawnPercent=", config.coopSpawnPercent,
+    " coopScoreMultiplier=", config.coopScoreMultiplier,
+    " planetCount=", config.planetCount
+  if runtimeConfig.resultsUri.len > 0:
+    echo "Using results target: " & runtimeConfig.resultsUri
+  if runtimeConfig.replayUri.len > 0:
+    echo "Using replay target: " & runtimeConfig.replayUri
+
 when isMainModule:
   let runtimeConfig = readRuntimeConfig()
   var
@@ -65,6 +87,7 @@ when isMainModule:
       planetCount: DefaultPlanetCount
     )
   config.update(runtimeConfig.config)
+  config.echoStartupConfig(runtimeConfig)
   let
     saveReplayPath =
       if runtimeConfig.replayUri.len > 0:
