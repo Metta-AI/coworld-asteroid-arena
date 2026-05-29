@@ -1,6 +1,6 @@
 import
   std/[random, strutils],
-  bitworld/protocol
+  bitworld/spriteprotocol
 
 type
   RgbaColor* = object
