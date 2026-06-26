@@ -27,9 +27,11 @@ ENV PATH="/root/.nimby/nim/bin:$PATH"
 
 WORKDIR /workspace/coworld-asteroid-arena
 COPY nimby.lock .
-RUN nimby --global sync nimby.lock
+RUN nimby sync nimby.lock -g
 
 COPY . .
+RUN nimby sync nimby.lock -g
+
 ARG NimFlags="-d:release -d:useMalloc --opt:speed --stackTrace:on"
 ARG NimCommand="c"
 ARG NimMain="players/shooter/shooter.nim"
