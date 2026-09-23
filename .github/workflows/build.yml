@@ -22,8 +22,6 @@ jobs:
         run: |
           cd ..
           nimby create
-          ln -s "$GITHUB_WORKSPACE" asteroid_arena
-          nimby install "asteroid_arena/asteroid_arena.nimble"
           nimby sync "$GITHUB_WORKSPACE/nimby.lock"
       - run: nim check src/asteroid_arena.nim
       - run: nim r tests/tests.nim
